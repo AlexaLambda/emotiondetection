@@ -9,22 +9,18 @@ const rekognition = new AWS.Rekognition();
 const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 const bucket = 'myemotiondetected'; // the bucketname without s3://
 let s3Image = "";
-async function detectEmotionForImageInS3() {
-  
+
+async function detectEmotionForImageInS3() {  
   console.log(`1. getImageFromBucket is start: ${bucket}`);
   let emotionDetected = {};
-
   const params = {
     Bucket: bucket,
   };
-
-
-    const response = await s3.listObjects(params).promise().then(data =>
-    {
-         s3Image = data.Contents[0].Key.toString('utf-8');
-         console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
-    });
-    
+  const response = await s3.listObjects(params).promise().then(data =>
+  {
+       s3Image = data.Contents[0].Key.toString('utf-8');
+       console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
+  });    
   const result = await callrekognitionAPI().then(emotion =>
   {
        emotionDetected = emotion;
@@ -34,8 +30,7 @@ async function detectEmotionForImageInS3() {
 }
 
 
-function callrekognitionAPI(){
-    
+function callrekognitionAPI(){    
     console.log(`4. detectEmotion() for: ${bucket}`);
     let emotionLocal = '';
     const params = {
@@ -47,14 +42,12 @@ function callrekognitionAPI(){
          },
          Attributes: ['ALL']
    };
-   
+ 
    return rekognition.detectFaces(params).promise(
         setTimeout(() => {
-    }, 1500)
-       
-       ).then(result => {
-       
-       result.FaceDetails.forEach( data => {
+         console.log("5. waiting to get image from s3");
+    }, 1500)).then(result => {       
+       result.FaceDetails.forEach(data => {
        emotionLocal = data.Emotions[0].Type;
        });
        return emotionLocal;
