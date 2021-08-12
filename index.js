@@ -1,71 +1,86 @@
-/* *
- * This sample demonstrates handling intents from an Alexa skill using the Alexa Skills Kit SDK (v2).
- * Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
- * session persistence, api calls, and more.
- * */
 const Alexa = require('ask-sdk-core');
-const AWS = require('aws-sdk')
-
+const AWS = require('aws-sdk');
 const config = new AWS.Config({
  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
  region: process.env.AWS_REGION
 })
-let emotion = {};
 const rekognition = new AWS.Rekognition();
+const s3 = new AWS.S3({apiVersion: '2006-03-01'});
+const bucket = 'myemotiondetected'; // the bucketname without s3://
+let s3Image = "";
+async function detectEmotionForImageInS3() {
+  
+  console.log(`1. getImageFromBucket is start: ${bucket}`);
+  let emotionDetected = {};
+
+  const params = {
+    Bucket: bucket,
+  };
 
 
-function detectEmotion(){
+    const response = await s3.listObjects(params).promise().then(data =>
+    {
+         s3Image = data.Contents[0].Key.toString('utf-8');
+         console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
+    });
     
-   const bucket = 'myemotiondetectionbucket' // the bucketname without s3://
-   const photo  = 'image.jpg' // the name of file
-   console.log(`Detected emotion for: ${photo}`)
-    console.log(`detectEmotion()`)
+  const result = await callrekognitionAPI().then(emotion =>
+  {
+       emotionDetected = emotion;
+       console.log(`3. detectEmotion: ${emotionDetected}`);
+  });
+  return emotionDetected;
+}
+
+
+function callrekognitionAPI(){
     
+    console.log(`4. detectEmotion() for: ${bucket}`);
+    let emotionLocal = '';
     const params = {
          Image: {
            S3Object: {
              Bucket: bucket,
-             Name: photo
+             Name: s3Image
            },
          },
          Attributes: ['ALL']
-   }
+   };
    
-   
-   return rekognition.detectFaces(params).promise().then(result => {
+   return rekognition.detectFaces(params).promise(
+        setTimeout(() => {
+    }, 1500)
+       
+       ).then(result => {
        
        result.FaceDetails.forEach( data => {
-       let low  = data.AgeRange.Low
-       let high = data.AgeRange.High
-       emotion = data.Emotions[0].Type
-       console.log(`The detected face is between: ${low} and ${high} years old`)
-       })
-       return emotion;
+       emotionLocal = data.Emotions[0].Type;
+       });
+       return emotionLocal;
    }).catch(error => {
        console.log(error);
      return error;
    });
-   
 }
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
+    
     handle(handlerInput) {
-        return detectEmotion().then(emotion => {
-        console.log(emotion);
-        const speakOutput = 'Welcome, How was your day today ? ' + 'you look ' + emotion
-        const repromt = 'would you like here some music'
+        return detectEmotionForImageInS3().then(emotion => {
+        console.log("LaunchRequestHandler started with detecting : ",emotion);
+        const speakOutput = 'Welcome, How was your day today ? ' + 'you look ' + emotion;
+        const repromt = 'would you like here some music';
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(repromt)
             .getResponse();
   }).catch(error => {
       return error;
-  })
-        
+  });
 }
 };
 
