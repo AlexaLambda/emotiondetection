@@ -11,22 +11,22 @@ const bucket = 'myemotiondetected'; // the bucketname without s3://
 let s3Image = "";
 
 async function detectEmotionForImageInS3() {  
-  console.log(`1. getImageFromBucket is start: ${bucket}`);
-  let emotionDetected = {};
-  const params = {
-    Bucket: bucket,
-  };
-  const response = await s3.listObjects(params).promise().then(data =>
-  {
-       s3Image = data.Contents[0].Key.toString('utf-8');
-       console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
-  });    
-  const result = await callrekognitionAPI().then(emotion =>
-  {
-       emotionDetected = emotion;
-       console.log(`3. detectEmotion: ${emotionDetected}`);
-  });
-  return emotionDetected;
+    console.log(`1. getImageFromBucket is start: ${bucket}`);
+    let emotionDetected = {};
+    const params = {
+      Bucket: bucket,
+    };
+    const response = await s3.listObjects(params).promise().then(data =>
+    {
+         s3Image = data.Contents[0].Key.toString('utf-8');
+         console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
+    });    
+    const result = await callrekognitionAPI().then(emotion =>
+    {
+         emotionDetected = emotion;
+         console.log(`3. detectEmotion: ${emotionDetected}`);
+    });
+    return emotionDetected;
 }
 
 
