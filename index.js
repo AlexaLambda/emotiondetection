@@ -16,13 +16,11 @@ async function detectEmotionForImageInS3() {
     const params = {
       Bucket: bucket,
     };
-    const response = await s3.listObjects(params).promise().then(data =>
-    {
+    const response = await s3.listObjects(params).promise().then(data => {
          s3Image = data.Contents[0].Key.toString('utf-8');
          console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
     });    
-    const result = await callrekognitionAPI().then(emotion =>
-    {
+    const result = await callrekognitionAPI().then(emotion => {
          emotionDetected = emotion;
          console.log(`3. detectEmotion: ${emotionDetected}`);
     });
@@ -44,17 +42,17 @@ function callrekognitionAPI(){
    };
  
    return rekognition.detectFaces(params).promise(
-        setTimeout(() => {
-         console.log("5. waiting to get image from s3");
-    }, 1500)).then(result => {       
-       result.FaceDetails.forEach(data => {
-       emotionLocal = data.Emotions[0].Type;
-       });
-       return emotionLocal;
-   }).catch(error => {
-       console.log(error);
-     return error;
-   });
+           setTimeout(() => {
+            console.log("5. waiting to get image from s3");
+           }, 1500)).then(result => {       
+             result.FaceDetails.forEach(data => {
+             emotionLocal = data.Emotions[0].Type;
+          });
+          return emotionLocal;
+      }).catch(error => {
+          console.log(error);
+        return error;
+      });
 }
 
 const LaunchRequestHandler = {
