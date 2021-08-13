@@ -9,7 +9,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-cognito-identity": "^3.24.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.24.0",
+    "@aws-sdk/client-rekognition": "^3.24.0",
+    "@aws-sdk/node-http-handler": "file:node_modules/@aws-sdk/node-http-handler",
     "ask-sdk-core": "^2.10.2",
-    "ask-sdk-model": "^1.35.1"
+    "ask-sdk-model": "^1.35.1",
+    "atob": "^2.1.2"
   }
 }

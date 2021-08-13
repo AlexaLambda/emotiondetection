@@ -63,8 +63,9 @@ const LaunchRequestHandler = {
     handle(handlerInput) {
         return detectEmotionForImageInS3().then(emotion => {
         console.log("LaunchRequestHandler started with detecting : ",emotion);
-        const speakOutput = 'Welcome, How was your day today ? ' + 'you look ' + emotion;
-        const repromt = 'would you like here some music';
+         
+        const speakOutput = 'you look ' + emotion +  ' , How was your day today ? ';
+        const repromt = 'How you feeling';
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(repromt)
@@ -223,5 +224,4 @@ exports.handler = Alexa.SkillBuilders.custom()
         IntentReflectorHandler)
     .addErrorHandlers(
         ErrorHandler)
-    .withCustomUserAgent('sample/hello-world/v1.2')
     .lambda();
