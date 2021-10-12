@@ -5,9 +5,10 @@ import { S3Client } from "@aws-sdk/client-s3";
 // Set the AWS Region.
 const REGION = "us-east-2"; //e.g. "us-east-1"
 
+// please check Imageloading/index.js here for accesskeyId and and acessKey https://infohub.automotive.elektrobit.com/display/ORGPJ/Technical+Discussion
 const s3sourceCredentials = new AWS.Credentials({
-    accessKeyId: 'AKIAZRWM3E62IY2FBMWU',
-    secretAccessKey: '485FVf7uqaj8sIdpYBq/Fnafk8aee1zNbiyFd2ft',
+    accessKeyId: 'replace with accesskeyId',
+    secretAccessKey: 'acessKey',
   });
 
 // Create an Amazon S3 service client object.
