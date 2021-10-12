@@ -1,5 +1,6 @@
 const Alexa = require('ask-sdk-core');
 const AWS = require('aws-sdk');
+var Spotify = require('node-spotify-api');
 const config = new AWS.Config({
  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -9,6 +10,38 @@ const rekognition = new AWS.Rekognition();
 const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 const bucket = 'myemotiondetected'; // the bucketname without s3://
 let s3Image = "";
+let song_url ;
+const STREAMS = [
+  {
+    token: '1',
+    url: 'https://streaming.radionomy.com/-ibizaglobalradio-?lang=en-US&appName=iTunes.m3u',
+    metadata: {
+      title: 'Stream One',
+      subtitle: 'A subtitle for stream one',
+      art: {
+        sources: [
+          {
+            contentDescription: 'example image',
+            url: 'https://s3.amazonaws.com/cdn.dabblelab.com/img/audiostream-starter-512x512.png',
+            widthPixels: 512,
+            heightPixels: 512,
+          },
+        ],
+      },
+      backgroundImage: {
+        sources: [
+          {
+            contentDescription: 'example image',
+            url: 'https://s3.amazonaws.com/cdn.dabblelab.com/img/wayfarer-on-beach-1200x800.png',
+            widthPixels: 1200,
+            heightPixels: 800,
+          },
+        ],
+      },
+    },
+  },
+];
+
 
 async function detectEmotionForImageInS3() {  
     console.log(`1. getImageFromBucket is start: ${bucket}`);
@@ -16,6 +49,8 @@ async function detectEmotionForImageInS3() {
     const params = {
       Bucket: bucket,
     };
+    // uploadload image() from raspary pi selfie
+    
     const response = await s3.listObjects(params).promise().then(data => {
          s3Image = data.Contents[0].Key.toString('utf-8');
          console.log(`2. getImageFromBucket listObjects: ${s3Image}`);
@@ -60,65 +95,183 @@ const LaunchRequestHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
     
+    //capture image in EB tool
+    
     handle(handlerInput) {
-        return detectEmotionForImageInS3().then(emotion => {
-        console.log("LaunchRequestHandler started with detecting : ",emotion);
-         
-        const speakOutput = 'you look ' + emotion +  ' , How was your day today ? ';
+        
+        const speakOutput = "Welcome! it is good to here your voice";
+        console.log(speakOutput);
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .addDelegateDirective({
+                    name: 'EmotionIntent',
+                    confirmationStatus: 'NONE',
+                    slots: {}
+                })
+            .withSimpleCard(
+              "EmotionDetection",
+              "TakepictureAndloadImage")
+            .getResponse();
+    } 
+        
+};
+
+const EmotionIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'EmotionIntent';
+    },
+
+    handle(handlerInput) {
+      
+      
+      return detectEmotionForImageInS3().then(emotion => {
+        console.log("started with detecting : ",emotion);
+  
+        const speakOutput = 'you seems to be '  + emotion + "!  <break time= \"2s\" /> how are you?";
         const repromt = 'How you feeling';
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(repromt)
-            .getResponse();
-  }).catch(error => {
-      return error;
-  });
-}
+
+        
+          const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+          sessionAttributes.emotionType = emotion;
+          handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+              return handlerInput.responseBuilder
+                  .speak(speakOutput)
+                  .addDelegateDirective({
+                    name: 'DetectEmotionIntent',
+                    confirmationStatus: 'NONE'
+                     })
+                  .getResponse();
+        }).catch(error => {
+            return error;
+        })
+  }
 };
 
-const PlayConfirmIntentHandler = {
+
+const DetectEmotionIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlayConfirmIntent';
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'DetectEmotionIntent';
     },
-    handle(handlerInput) {
-        const speakOutput = 'Okay I will play music now!';
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
-            .getResponse();
-    }
-};
 
-const PlaycancelIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlaycancelIntent';
-    },
-    handle(handlerInput) {
-        const speakOutput = 'Now problem , a joke then ?';
-
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
-            .getResponse();
-    }
-};
-const HelpIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
-    },
-    handle(handlerInput) {
-        const speakOutput = 'You can say hello to me! How can I help?';
-
+ handle(handlerInput) {
+        
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        let speakOutput = '';
+        if(sessionAttributes.emotionType == 'ANGRY')
+        {
+            sessionAttributes.YesNofrom = 'music'
+            speakOutput =  'Let\'s make you feel calm, would you like to play some music?';
+           
+        }
+        
+        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(speakOutput)
             .getResponse();
+    } 
+
+        
+};
+
+
+const YesIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.YesIntent');
+    },
+    handle(handlerInput) {
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        let speakOutput = '';
+        let sessionEnd = false;
+    if(sessionAttributes.emotionType == 'ANGRY')
+    {
+        if(sessionAttributes.YesNofrom == 'music')
+        {
+            speakOutput = 'Okay I will play music!';
+
+        }
+        else if (sessionAttributes.YesNofrom == 'joke')
+        {
+            speakOutput = 'Okay, Here is a Joke. ' + "Why don’t scientists trust atoms?" + "<break time= \"2s\" /> Because they make up everything.";
+        }
+        else if(sessionAttributes.YesNofrom == 'joke')
+        {
+            speakOutput = 'Would you like to listen to another joke' + "Why doesn’t the sun go to college? Because it has a million degrees"
+        }
+            
+        else if(sessionAttributes.YesNofrom == 'walk')
+        {
+            speakOutput = 'Okay';
+        }
+    }
+        
+    else if(sessionAttributes.emotionType == 'SAD')
+    {
+        
+    }
+    
+    else
+    {
+        
+    }
+    handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+    return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .withShouldEndSession(true)
+        .getResponse();
     }
 };
+
+const NoIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent');
+    },
+    handle(handlerInput) {
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        let speakOutput = '';
+        let sessionEnd = false;
+   
+        if(sessionAttributes.emotionType == 'ANGRY')
+        {
+            if(sessionAttributes.YesNofrom == 'music')
+            {
+                speakOutput = 'Okay! How about a joke then?';
+                sessionAttributes.YesNofrom = 'joke'
+                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            }
+            
+            else if (sessionAttributes.YesNofrom == 'joke')
+            {
+                speakOutput = 'Lets take a small walk and relax';
+                sessionAttributes.YesNofrom = 'walk'
+                handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+            }
+            
+            else 
+            {
+                speakOutput = 'I have nothing else to offer';
+                sessionEnd = true;
+            }
+        }
+        
+        else if (sessionAttributes.emotionType == 'SAD')
+        {
+            
+        }
+       
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .withShouldEndSession(sessionEnd)
+            .getResponse();
+    }
+};
+
 
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
@@ -134,6 +287,23 @@ const CancelAndStopIntentHandler = {
             .getResponse();
     }
 };
+
+const HelpIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+    },
+    handle(handlerInput) {
+        const speakOutput = 'You can say hello to me! How can I help?';
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+};
+
+
 /* *
  * FallbackIntent triggers when a customer says something that doesn’t map to any intents in your skill
  * It must also be defined in the language model (if the locale supports it)
@@ -215,8 +385,10 @@ const ErrorHandler = {
 exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
         LaunchRequestHandler,
-        PlayConfirmIntentHandler,
-        PlaycancelIntentHandler,
+        DetectEmotionIntentHandler,
+        EmotionIntentHandler,
+        YesIntentHandler,
+        NoIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         FallbackIntentHandler,
