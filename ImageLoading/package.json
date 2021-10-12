@@ -1,0 +1,17 @@
+{
+  "name": "imageloading",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.32.0",
+    "@aws-sdk/node-http-handler": "^3.32.0",
+    "aws-sdk": "^2.991.0",
+    "fs": "0.0.1-security"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}
